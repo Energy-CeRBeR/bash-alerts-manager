@@ -1,0 +1,13 @@
+# IDE
+.vscode/
+.idea/
+.history/
+
+# Environmant
+venv/
+.venv/
+.env
+
+# Logs
+*.log
+
