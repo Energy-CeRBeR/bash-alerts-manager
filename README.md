@@ -17,30 +17,27 @@
 
 ```bash
 alert-manager/
-├── alert-manager.conf          # Конфигурационный файл
+├── alert-manager.conf         # Конфигурационный файл
 ├── alert-manager.sh           # Главный скрипт запуска
 ├── README.md                  # Документация
-├── INSTALL_WSL.md            # Инструкция для WSL
-├── TROUBLESHOOTING.md        # Устранение проблем
-├── PROJECT_ANALYSIS.md       # Подробный анализ проекта
-├── scripts/
-│   ├── install.sh            # Скрипт установки
-│   ├── uninstall.sh          # Скрипт удаления
-│   ├── test_runner.sh        # Тестовый запуск
-│   ├── alert-manager.sh      # Основной мониторинг
-│   ├── utils/                # Утилиты
-│   │   ├── logger.sh         # Система логирования
-│   │   ├── config_parser.sh  # Парсер конфигурации
-│   │   ├── system_info.sh    # Информация о системе
+├── scripts/                   # Директория для всех скриптов
+│   ├── install.sh             # Скрипт установки
+│   ├── uninstall.sh           # Скрипт удаления
+│   ├── test_runner.sh         # Тестовый запуск
+│   ├── alert-manager.sh       # Основной мониторинг
+│   ├── utils/                 # Утилиты
+│   │   ├── logger.sh          # Система логирования
+│   │   ├── config_parser.sh   # Парсер конфигурации
+│   │   ├── system_info.sh     # Информация о системе
 │   │   └── alert_formatter.sh # Форматирование алертов
-│   ├── observability/        # Модули мониторинга
-│   │   ├── cpu_monitor.sh    # Мониторинг CPU
-│   │   ├── ram_monitor.sh    # Мониторинг RAM
-│   │   ├── disk_monitor.sh   # Мониторинг диска
+│   ├── observability/         # Модули мониторинга
+│   │   ├── cpu_monitor.sh     # Мониторинг CPU
+│   │   ├── ram_monitor.sh     # Мониторинг RAM
+│   │   ├── disk_monitor.sh    # Мониторинг диска
 │   │   └── process_monitor.sh # Мониторинг процессов
-│   └── alerts/               # Система алертов
-│       └── file_alert.sh     # Файловые алерты
-└── logs/                     # Директория для логов (создается автоматически)               # Директория для логов (создается автоматически)
+│   └── alerts/                # Система алертов
+│       └── file_alert.sh      # Файловые алерты
+└── alerts.log                 # Файл с логами
 ```
 
 # Быстрый старт
