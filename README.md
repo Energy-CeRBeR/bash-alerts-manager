@@ -133,3 +133,7 @@ Top CPU Processes:
 
 1. Создайте новый скрипт в `scripts/alerts/`
 2. Интегрируйте с `scripts/alerts/file_alert.sh`
+
+## Запуск скрипта по крону
+
+> В разработке...
