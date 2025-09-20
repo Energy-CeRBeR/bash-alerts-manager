@@ -89,9 +89,18 @@ setup_directories() {
 set_permissions() {
     print_status "Setting file permissions..."
     
-    # Make scripts executable
-    find "$PROJECT_DIR/scripts" -name "*.sh" -exec chmod +x {} \;
+    # Make main script executable first
     chmod +x "$PROJECT_DIR/alert-manager.sh"
+    
+    # Make all scripts in scripts directory executable
+    find "$PROJECT_DIR/scripts" -name "*.sh" -exec chmod +x {} \;
+    
+    # Set read permissions for config file
+    chmod 644 "$PROJECT_DIR/alert-manager.conf"
+    
+    # Create logs directory with proper permissions
+    mkdir -p "$PROJECT_DIR/logs"
+    chmod 755 "$PROJECT_DIR/logs"
     
     # Set proper ownership
     chown -R "$(whoami):$(whoami)" "$PROJECT_DIR"
@@ -163,8 +172,26 @@ run_tests() {
     print_success "All tests passed"
 }
 
+# Quick fix function for permission issues
+quick_fix_permissions() {
+    print_status "Quick fix: Setting executable permissions..."
+    
+    # Fix main script
+    chmod +x "$PROJECT_DIR/alert-manager.sh"
+    
+    # Fix all scripts
+    find "$PROJECT_DIR/scripts" -name "*.sh" -exec chmod +x {} \;
+    
+    print_success "Permissions fixed! You can now run: ./alert-manager.sh status"
+}
+
 # Main installation function
 main() {
+    if [[ "${1:-}" == "--fix-permissions" ]]; then
+        quick_fix_permissions
+        exit 0
+    fi
+    
     echo "Alert Manager Installation"
     echo "========================="
     echo ""
@@ -194,7 +221,12 @@ main() {
     echo "3. Install cron job: $PROJECT_DIR/alert-manager.sh install"
     echo "4. Check status: $PROJECT_DIR/alert-manager.sh status"
     echo ""
+    echo "If you get 'Permission denied' errors:"
+    echo "  Run: ./scripts/install.sh --fix-permissions"
+    echo "  Or manually: chmod +x alert-manager.sh"
+    echo ""
     echo "For help: $PROJECT_DIR/alert-manager.sh help"
+    echo "Troubleshooting guide: $PROJECT_DIR/TROUBLESHOOTING.md"
 }
 
 main "$@"
