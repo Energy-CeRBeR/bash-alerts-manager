@@ -9,14 +9,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Test counters
 TESTS_RUN=0
 TESTS_PASSED=0
 TESTS_FAILED=0
@@ -51,14 +49,12 @@ run_test() {
     fi
 }
 
-# Test configuration file
 test_config_file() {
     run_test "Configuration file exists" "[[ -f '$PROJECT_DIR/alert-manager.conf' ]]"
     run_test "Configuration file is readable" "[[ -r '$PROJECT_DIR/alert-manager.conf' ]]"
     run_test "Configuration loads without errors" "source '$PROJECT_DIR/alert-manager.conf'"
 }
 
-# Test script files
 test_script_files() {
     local scripts=(
         "alert-manager.sh"
@@ -78,7 +74,6 @@ test_script_files() {
     done
 }
 
-# Test dependencies
 test_dependencies() {
     local deps=(bc ps free df top uptime)
     
@@ -87,13 +82,10 @@ test_dependencies() {
     done
 }
 
-# Test monitoring functions
 test_monitoring() {
-    # Source required files
     source "$PROJECT_DIR/alert-manager.conf"
     source "$SCRIPT_DIR/utils/logger.sh"
     
-    # Initialize logger for testing
     init_logger "/tmp/test_alerts.log"
     
     run_test "CPU monitoring script runs" "$SCRIPT_DIR/observability/cpu_monitor.sh 99"
@@ -102,32 +94,26 @@ test_monitoring() {
     run_test "Process monitoring script runs" "$SCRIPT_DIR/observability/process_monitor.sh 9999"
 }
 
-# Test alert system
 test_alert_system() {
     local test_log="/tmp/test_alert_system.log"
     
-    # Initialize logger
     source "$SCRIPT_DIR/utils/logger.sh"
     init_logger "$test_log"
     
-    # Test alert generation
     log_alert "TEST_ALERT" "50%" "40%" "This is a test alert"
     
     run_test "Alert written to log file" "[[ -f '$test_log' ]]"
     run_test "Alert contains correct format" "grep -q '🚨 ALERT TRIGGERED 🚨' '$test_log'"
     run_test "Alert contains test data" "grep -q 'TEST_ALERT' '$test_log'"
     
-    # Cleanup
     rm -f "$test_log"
 }
 
-# Test main script functionality
 test_main_script() {
     run_test "Main script shows help" "$PROJECT_DIR/alert-manager.sh help"
     run_test "Main script shows status" "$PROJECT_DIR/alert-manager.sh status"
 }
 
-# Performance test
 test_performance() {
     print_test_header "Performance test - measuring execution time"
     
@@ -136,7 +122,7 @@ test_performance() {
     local end_time=$(date +%s.%N)
     
     local execution_time=$(echo "$end_time - $start_time" | bc)
-    local max_time=30.0  # 30 seconds max
+    local max_time=30.0 
     
     if (( $(echo "$execution_time < $max_time" | bc -l) )); then
         print_test_pass "Performance test (${execution_time}s < ${max_time}s)"
@@ -149,7 +135,6 @@ test_performance() {
     ((TESTS_RUN++))
 }
 
-# Generate test report
 generate_report() {
     echo ""
     echo "Test Report"
@@ -168,13 +153,11 @@ generate_report() {
     fi
 }
 
-# Main test function
 main() {
     echo "Alert Manager Test Suite"
     echo "======================="
     echo ""
     
-    # Run test suites
     test_config_file
     test_script_files
     test_dependencies
@@ -183,7 +166,6 @@ main() {
     test_main_script
     test_performance
     
-    # Generate report
     generate_report
 }
 

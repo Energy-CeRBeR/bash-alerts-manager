@@ -9,76 +9,61 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../utils/logger.sh"
 
-# Alert cooldown management
 COOLDOWN_FILE="/tmp/alert_manager_cooldown"
 
-# Check if alert is in cooldown period
 is_alert_in_cooldown() {
     local alert_type="$1"
     local cooldown_minutes="${ALERT_COOLDOWN:-5}"
     
     if [[ ! -f "$COOLDOWN_FILE" ]]; then
-        return 1  # No cooldown file, not in cooldown
+        return 1  
     fi
     
     local last_alert_time=$(grep "^$alert_type:" "$COOLDOWN_FILE" 2>/dev/null | cut -d: -f2)
     
     if [[ -z "$last_alert_time" ]]; then
-        return 1  # Alert type not found, not in cooldown
+        return 1 
     fi
     
     local current_time=$(date +%s)
     local time_diff=$(( (current_time - last_alert_time) / 60 ))
     
     if (( time_diff >= cooldown_minutes )); then
-        return 1  # Cooldown period expired
+        return 1  
     fi
     
-    return 0  # Still in cooldown
+    return 0 
 }
 
-# Update alert cooldown
 update_alert_cooldown() {
     local alert_type="$1"
     local current_time=$(date +%s)
     
-    # Create cooldown file if it doesn't exist
     touch "$COOLDOWN_FILE"
     
-    # Remove old entry for this alert type
     grep -v "^$alert_type:" "$COOLDOWN_FILE" > "${COOLDOWN_FILE}.tmp" 2>/dev/null || true
     
-    # Add new entry
     echo "$alert_type:$current_time" >> "${COOLDOWN_FILE}.tmp"
     
-    # Replace original file
     mv "${COOLDOWN_FILE}.tmp" "$COOLDOWN_FILE"
 }
 
-# Send formatted alert
 send_alert() {
     local alert_type="$1"
     local current_value="$2"
     local threshold="$3"
     local details="$4"
     
-    # Check cooldown
     if is_alert_in_cooldown "$alert_type"; then
         log_info "Alert $alert_type is in cooldown period, skipping..."
         return 0
     fi
     
-    # Generate alert
     log_alert "$alert_type" "$current_value" "$threshold" "$details"
     
-    # Update cooldown
-    update_alert_cooldown "$alert_type"
-    
-    # Additional notification methods can be added here
-    # For example: email, webhook, Slack, etc.
+    update_alert_cooldown "$alert_type"  
 }
 
-# Generate alert summary
 generate_alert_summary() {
     local log_file="$1"
     
@@ -92,13 +77,11 @@ generate_alert_summary() {
     echo "Generated: $(date)"
     echo ""
     
-    # Count alerts by type
     echo "Alert Counts:"
     echo "-------------"
     grep "Alert Type:" "$log_file" | awk -F': ' '{print $2}' | sort | uniq -c | sort -nr
     echo ""
     
-    # Recent alerts (last 24 hours)
     echo "Recent Alerts (Last 24 Hours):"
     echo "------------------------------"
     local yesterday=$(date -d "24 hours ago" '+%Y-%m-%d %H:%M:%S')
@@ -118,7 +101,6 @@ generate_alert_summary() {
     ' "$log_file"
 }
 
-# Main function
 main() {
     local action="${1:-help}"
     
@@ -172,7 +154,6 @@ EOF
     esac
 }
 
-# Execute main function if script is run directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     main "$@"
 fi

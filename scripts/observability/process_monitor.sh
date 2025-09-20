@@ -19,14 +19,11 @@ source "$SCRIPT_DIR/../utils/logger.sh"
 
 THRESHOLD=${1:-200}
 
-# Get current process count
 get_process_count() {
     local count=$(ps aux | wc -l)
-    # Subtract 1 for header line
     echo $((count - 1))
 }
 
-# Get detailed process information
 get_process_details() {
     cat << EOF
 Process Details:
@@ -50,13 +47,11 @@ $(pstree -p | head -10)
 EOF
 }
 
-# Main monitoring logic
 main() {
     local current_processes=$(get_process_count)
     
     log_info "Process Check - Current: $current_processes, Threshold: $THRESHOLD"
     
-    # Compare with threshold
     if (( current_processes > THRESHOLD )); then
         local details=$(get_process_details)
         log_alert "HIGH PROCESS COUNT" "$current_processes" "$THRESHOLD" "$details"

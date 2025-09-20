@@ -19,7 +19,6 @@ source "$SCRIPT_DIR/../utils/logger.sh"
 
 THRESHOLD=${1:-85.0}
 
-# Get memory usage percentage
 get_memory_usage() {
     local mem_info=$(free | grep '^Mem:')
     local total=$(echo $mem_info | awk '{print $2}')
@@ -28,7 +27,6 @@ get_memory_usage() {
     echo "$usage"
 }
 
-# Get detailed memory information
 get_memory_details() {
     local mem_info=$(free -h)
     local swap_info=$(free -h | grep '^Swap:')
@@ -46,13 +44,11 @@ $(cat /proc/meminfo | grep -E '^(MemTotal|MemFree|MemAvailable|Buffers|Cached|Sw
 EOF
 }
 
-# Main monitoring logic
 main() {
     local current_mem=$(get_memory_usage)
     
     log_info "Memory Check - Current: ${current_mem}%, Threshold: ${THRESHOLD}%"
     
-    # Compare with threshold
     if (( $(echo "$current_mem > $THRESHOLD" | bc -l) )); then
         local details=$(get_memory_details)
         log_alert "HIGH MEMORY USAGE" "${current_mem}%" "${THRESHOLD}%" "$details"

@@ -7,11 +7,9 @@
 
 set -euo pipefail
 
-# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Source configuration
 CONFIG_FILE="$PROJECT_DIR/alert-manager.conf"
 if [[ ! -f "$CONFIG_FILE" ]]; then
     echo "ERROR: Configuration file not found: $CONFIG_FILE"
@@ -20,11 +18,9 @@ fi
 
 source "$CONFIG_FILE"
 
-# Source utility functions
 source "$SCRIPT_DIR/utils/logger.sh"
 source "$SCRIPT_DIR/utils/config_parser.sh"
 
-# Initialize logging with validation
 if [[ -z "${LOG_FILE:-}" ]]; then
     echo "WARNING: LOG_FILE not set in config, using default"
     LOG_FILE="alerts.log"
@@ -34,7 +30,6 @@ init_logger "$LOG_FILE"
 
 log_info "Alert Manager started - $(date)"
 
-# Apply test mode if enabled
 if [[ "${TEST_MODE:-false}" == "true" ]]; then
     log_info "TEST MODE ENABLED - Using low thresholds for testing"
     CPU_THRESHOLD=${TEST_CPU_THRESHOLD:-$CPU_THRESHOLD}
@@ -43,13 +38,11 @@ if [[ "${TEST_MODE:-false}" == "true" ]]; then
     PROCESS_THRESHOLD=${TEST_PROCESS_THRESHOLD:-$PROCESS_THRESHOLD}
 fi
 
-# Check if alerts are enabled
 if [[ "${ENABLE_ALERTS:-true}" != "true" ]]; then
     log_info "Alerts are disabled in configuration"
     exit 0
 fi
 
-# Run monitoring checks
 check_cpu() {
     if [[ "${CPU_ALERT_ENABLED:-true}" == "true" ]]; then
         "$SCRIPT_DIR/observability/cpu_monitor.sh" "$CPU_THRESHOLD"
@@ -74,7 +67,6 @@ check_processes() {
     fi
 }
 
-# Execute all checks
 log_info "Starting system monitoring checks..."
 
 check_cpu
