@@ -1,30 +1,25 @@
 #!/bin/bash
 
-# Alert Manager - Главная точка входа
-# ===================================
-# Автор: Alert Manager System
-# Описание: Главный скрипт для запуска системы мониторинга алертов
+# Alert Manager - Main Entry Point
+# ================================
+# Author: Alert Manager System
+# Description: Main script to run the alert manager system
 
 set -euo pipefail
 
-# Получить директорию скрипта
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Проверить, что запускаем из правильной директории
 if [[ ! -f "$SCRIPT_DIR/alert-manager.conf" ]]; then
-    echo "ОШИБКА: alert-manager.conf не найден в текущей директории"
-    echo "Пожалуйста, запустите этот скрипт из корневой директории alert-manager"
+    echo "ERROR: alert-manager.conf not found in current directory"
+    echo "Please run this script from the alert-manager root directory"
     exit 1
 fi
 
-# Загрузить конфигурацию
 source "$SCRIPT_DIR/alert-manager.conf"
 
-# Проверить зависимости
 check_dependencies() {
     local missing_deps=()
     
-    # Проверить необходимые команды
     for cmd in bc ps free df top uptime; do
         if ! command -v "$cmd" &> /dev/null; then
             missing_deps+=("$cmd")
@@ -32,188 +27,165 @@ check_dependencies() {
     done
     
     if [[ ${#missing_deps[@]} -gt 0 ]]; then
-        echo "ОШИБКА: Отсутствуют необходимые зависимости: ${missing_deps[*]}"
-        echo "Пожалуйста, установите недостающие пакеты и попробуйте снова"
+        echo "ERROR: Missing required dependencies: ${missing_deps[*]}"
+        echo "Please install missing packages and try again"
         exit 1
     fi
 }
 
-# Показать баннер
 show_banner() {
     cat << 'EOF'
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                              ALERT MANAGER                                   ║
-║                         Инструмент мониторинга системы                       ║
+║                         System Monitoring Tool                               ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 EOF
 }
 
-# Показать информацию об использовании
 show_usage() {
     cat << EOF
-Использование: $0 [КОМАНДА] [ОПЦИИ]
+Usage: $0 [COMMAND] [OPTIONS]
 
-Команды:
-  run                    - Запустить проверки мониторинга один раз
-  install               - Установить и настроить cron задачу
-  uninstall            - Удалить cron задачу
-  status               - Показать текущий статус и конфигурацию
-  test                 - Запустить тест с низкими порогами
-  summary              - Показать сводку алертов из лог файла
-  help                 - Показать это сообщение помощи
+Commands:
+  run                    - Run monitoring checks once
+  install               - Install and setup cron job
+  uninstall            - Remove cron job
+  status               - Show current status and configuration
+  test                 - Run test with low thresholds
+  summary              - Show alert summary from log file
+  help                 - Show this help message
 
-Опции:
-  --config FILE        - Использовать пользовательский файл конфигурации
-  --verbose           - Включить подробный вывод
-  --dry-run           - Показать что будет сделано без выполнения
+Options:
+  --config FILE        - Use custom configuration file
+  --verbose           - Enable verbose output
+  --dry-run           - Show what would be done without executing
 
-Примеры:
-  $0 run                          # Запустить мониторинг один раз
-  $0 install                      # Настроить cron задачу
-  $0 test                         # Тест с низкими порогами
-  $0 status                       # Показать текущий статус
-  $0 summary                      # Показать сводку алертов
+Examples:
+  $0 run                          # Run monitoring once
+  $0 install                      # Setup cron job
+  $0 test                         # Test with low thresholds
+  $0 status                       # Show current status
+  $0 summary                      # Show alert summary
 EOF
 }
 
-# Показать текущий статус
 show_status() {
-    echo "Статус Alert Manager"
+    echo "Alert Manager Status"
     echo "==================="
     echo ""
     
-    # Статус конфигурации
-    echo "Конфигурация:"
-    echo "  Файл конфигурации: $SCRIPT_DIR/alert-manager.conf"
-    echo "  Лог файл: ${LOG_FILE}"
-    echo "  Интервал проверки: ${CHECK_INTERVAL} минут"
-    echo "  Тестовый режим: ${TEST_MODE:-false}"
+    echo "Configuration:"
+    echo "  Config File: $SCRIPT_DIR/alert-manager.conf"
+    echo "  Log File: ${LOG_FILE}"
+    echo "  Check Interval: ${CHECK_INTERVAL} minutes"
+    echo "  Test Mode: ${TEST_MODE:-false}"
     echo ""
     
-    # Пороги
-    echo "Пороги мониторинга:"
+    echo "Monitoring Thresholds:"
     if [[ "${TEST_MODE:-false}" == "true" ]]; then
-        echo "  CPU: ${TEST_CPU_THRESHOLD:-$CPU_THRESHOLD}% (ТЕСТОВЫЙ РЕЖИМ)"
-        echo "  Память: ${TEST_RAM_THRESHOLD:-$RAM_THRESHOLD}% (ТЕСТОВЫЙ РЕЖИМ)"
-        echo "  Диск: ${TEST_DISK_THRESHOLD:-$DISK_THRESHOLD}% (ТЕСТОВЫЙ РЕЖИМ)"
-        echo "  Процессы: ${TEST_PROCESS_THRESHOLD:-$PROCESS_THRESHOLD} (ТЕСТОВЫЙ РЕЖИМ)"
+        echo "  CPU: ${TEST_CPU_THRESHOLD:-$CPU_THRESHOLD}% (TEST MODE)"
+        echo "  Memory: ${TEST_RAM_THRESHOLD:-$RAM_THRESHOLD}% (TEST MODE)"
+        echo "  Disk: ${TEST_DISK_THRESHOLD:-$DISK_THRESHOLD}% (TEST MODE)"
+        echo "  Processes: ${TEST_PROCESS_THRESHOLD:-$PROCESS_THRESHOLD} (TEST MODE)"
     else
         echo "  CPU: ${CPU_THRESHOLD}%"
-        echo "  Память: ${RAM_THRESHOLD}%"
-        echo "  Диск: ${DISK_THRESHOLD}%"
-        echo "  Процессы: ${PROCESS_THRESHOLD}"
+        echo "  Memory: ${RAM_THRESHOLD}%"
+        echo "  Disk: ${DISK_THRESHOLD}%"
+        echo "  Processes: ${PROCESS_THRESHOLD}"
     fi
     echo ""
     
-    # Статус Cron
-    echo "Статус Cron задачи:"
+    echo "Cron Job Status:"
     if crontab -l 2>/dev/null | grep -q "alert-manager.sh"; then
-        echo "  Статус: УСТАНОВЛЕНА"
-        echo "  Расписание: $(crontab -l 2>/dev/null | grep "alert-manager.sh" | awk '{print $1, $2, $3, $4, $5}')"
+        echo "  Status: INSTALLED"
+        echo "  Schedule: $(crontab -l 2>/dev/null | grep "alert-manager.sh" | awk '{print $1, $2, $3, $4, $5}')"
     else
-        echo "  Статус: НЕ УСТАНОВЛЕНА"
+        echo "  Status: NOT INSTALLED"
     fi
     echo ""
     
-    # Статус лог файла
-    echo "Статус лог файла:"
+    echo "Log File Status:"
     if [[ -f "${LOG_FILE}" ]]; then
-        echo "  Файл: СУЩЕСТВУЕТ"
-        echo "  Размер: $(du -h "${LOG_FILE}" | cut -f1)"
-        echo "  Последнее изменение: $(stat -c %y "${LOG_FILE}" 2>/dev/null | cut -d. -f1)"
-        echo "  Количество алертов: $(grep -c "🚨 ALERT TRIGGERED 🚨" "${LOG_FILE}" 2>/dev/null || echo "0")"
+        echo "  File: EXISTS"
+        echo "  Size: $(du -h "${LOG_FILE}" | cut -f1)"
+        echo "  Last Modified: $(stat -c %y "${LOG_FILE}" 2>/dev/null | cut -d. -f1)"
+        echo "  Alert Count: $(grep -c "🚨 ALERT TRIGGERED 🚨" "${LOG_FILE}" 2>/dev/null || echo "0")"
     else
-        echo "  Файл: НЕ СУЩЕСТВУЕТ"
+        echo "  File: NOT EXISTS"
     fi
 }
 
-# Установить cron задачу
 install_cron() {
     local cron_schedule="*/${CHECK_INTERVAL} * * * *"
     local cron_command="$SCRIPT_DIR/alert-manager.sh run >> $SCRIPT_DIR/cron.log 2>&1"
     
-    echo "Установка cron задачи Alert Manager..."
-    echo "Расписание: Каждые ${CHECK_INTERVAL} минут"
-    echo "Команда: $cron_command"
+    echo "Installing Alert Manager cron job..."
+    echo "Schedule: Every ${CHECK_INTERVAL} minutes"
+    echo "Command: $cron_command"
     
-    # Резервная копия существующего crontab
     crontab -l > /tmp/crontab_backup 2>/dev/null || true
     
-    # Удалить существующие записи alert-manager
     crontab -l 2>/dev/null | grep -v "alert-manager.sh" > /tmp/crontab_new || true
     
-    # Добавить новую запись
     echo "$cron_schedule $cron_command" >> /tmp/crontab_new
     
-    # Установить новый crontab
     crontab /tmp/crontab_new
     
-    echo "✅ Cron задача установлена успешно!"
-    echo "Alert manager будет запускаться каждые ${CHECK_INTERVAL} минут."
-    echo "Логи будут записываться в: $SCRIPT_DIR/cron.log"
+    echo "✅ Cron job installed successfully!"
+    echo "The alert manager will run every ${CHECK_INTERVAL} minutes."
+    echo "Logs will be written to: $SCRIPT_DIR/cron.log"
 }
 
-# Удалить cron задачу
 uninstall_cron() {
-    echo "Удаление cron задачи Alert Manager..."
+    echo "Removing Alert Manager cron job..."
     
-    # Удалить записи alert-manager из crontab
     crontab -l 2>/dev/null | grep -v "alert-manager.sh" > /tmp/crontab_new || true
     crontab /tmp/crontab_new
     
-    echo "✅ Cron задача удалена успешно!"
+    echo "✅ Cron job removed successfully!"
 }
 
-# Запустить мониторинг
 run_monitoring() {
-    echo "Запуск мониторинга Alert Manager..."
+    echo "Starting Alert Manager monitoring..."
     
-    # Сделать скрипты исполняемыми
     chmod +x "$SCRIPT_DIR/scripts/alert-manager.sh"
     chmod +x "$SCRIPT_DIR/scripts/observability/"*.sh
     chmod +x "$SCRIPT_DIR/scripts/alerts/"*.sh
     
-    # Запустить главный скрипт мониторинга
     "$SCRIPT_DIR/scripts/alert-manager.sh"
     
-    echo "Мониторинг завершен."
+    echo "Monitoring completed."
 }
 
-# Запустить тестовый режим
 run_test() {
-    echo "Запуск Alert Manager в ТЕСТОВОМ РЕЖИМЕ..."
-    echo "Использование низких порогов для срабатывания алертов при тестировании..."
+    echo "Running Alert Manager in TEST MODE..."
+    echo "Using low thresholds to trigger alerts for testing..."
     
-    # Временно включить тестовый режим
     local original_test_mode="${TEST_MODE:-false}"
     export TEST_MODE=true
     
     run_monitoring
     
-    # Восстановить оригинальный тестовый режим
     export TEST_MODE="$original_test_mode"
     
     echo ""
-    echo "Тест завершен! Проверьте лог файл на наличие алертов:"
-    echo "  Лог файл: ${LOG_FILE}"
-    echo "  Просмотр алертов: tail -50 '${LOG_FILE}'"
+    echo "Test completed! Check the log file for alerts:"
+    echo "  Log file: ${LOG_FILE}"
+    echo "  View alerts: tail -50 '${LOG_FILE}'"
 }
 
-# Показать сводку алертов
 show_summary() {
     if [[ -f "$SCRIPT_DIR/scripts/alerts/file_alert.sh" ]]; then
         "$SCRIPT_DIR/scripts/alerts/file_alert.sh" summary "${LOG_FILE}"
     else
-        echo "Скрипт сводки алертов не найден"
+        echo "Alert summary script not found"
         exit 1
     fi
 }
 
-# Главная функция
 main() {
     local command="${1:-help}"
     
-    # Разбор опций
     while [[ $# -gt 0 ]]; do
         case $1 in
             --config)
@@ -225,7 +197,7 @@ main() {
                 shift
                 ;;
             --dry-run)
-                echo "РЕЖИМ ПРОБНОГО ЗАПУСКА - Изменения не будут внесены"
+                echo "DRY RUN MODE - No changes will be made"
                 shift
                 ;;
             *)
@@ -234,7 +206,6 @@ main() {
         esac
     done
     
-    # Обновить команду после разбора опций
     command="${1:-help}"
     
     case "$command" in
@@ -267,5 +238,4 @@ main() {
     esac
 }
 
-# Выполнить главную функцию
 main "$@"

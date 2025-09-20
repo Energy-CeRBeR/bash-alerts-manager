@@ -72,7 +72,6 @@ cd bash-alerts-manager
 ```bash
 chmod +x alert-manager.sh
 find scripts/ -name "*.sh" -exec chmod +x {} \;
-./scripts/install.sh --fix-permissions
 ```
 
 **Проверка:**
