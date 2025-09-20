@@ -7,6 +7,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
+export PROJECT_DIR
+
+CONFIG_FILE="$PROJECT_DIR/alert-manager.conf"
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+fi
+
 source "$SCRIPT_DIR/../utils/logger.sh"
 
 THRESHOLD=${1:-85.0}

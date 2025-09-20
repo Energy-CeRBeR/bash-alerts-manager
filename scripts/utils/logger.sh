@@ -42,17 +42,47 @@ init_logger() {
     echo "Log file initialized: $LOG_FILE_PATH"
 }
 
+auto_init_logger() {
+    if [[ -z "$LOG_FILE_PATH" ]]; then
+        # Try to get log file from environment or config
+        local log_file="${LOG_FILE:-alerts.log}"
+        
+        # Try to determine project directory
+        local project_dir
+        if [[ -n "${PROJECT_DIR:-}" ]]; then
+            project_dir="$PROJECT_DIR"
+        elif [[ -n "${SCRIPT_DIR:-}" ]]; then
+            project_dir="$(dirname "$SCRIPT_DIR")"
+        else
+            project_dir="$(pwd)"
+        fi
+        
+        # Set absolute path
+        if [[ "$log_file" = /* ]]; then
+            LOG_FILE_PATH="$log_file"
+        else
+            LOG_FILE_PATH="$project_dir/$log_file"
+        fi
+        
+        # Create directory and file
+        mkdir -p "$(dirname "$LOG_FILE_PATH")"
+        touch "$LOG_FILE_PATH"
+        
+        # Verify writable
+        if [[ ! -w "$LOG_FILE_PATH" ]]; then
+            LOG_FILE_PATH="/tmp/alerts.log"
+            touch "$LOG_FILE_PATH"
+        fi
+    fi
+}
+
 log_message() {
     local level="$1"
     local message="$2"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local formatted_message="[$timestamp] [$level] $message"
     
-    if [[ -z "$LOG_FILE_PATH" ]]; then
-        echo "ERROR: Logger not initialized. Call init_logger first."
-        echo "$formatted_message"
-        return 1
-    fi
+    auto_init_logger
     
     echo "$formatted_message" | tee -a "$LOG_FILE_PATH"
 }
@@ -74,6 +104,8 @@ log_alert() {
     local current_value="$2"
     local threshold="$3"
     local additional_info="$4"
+    
+    auto_init_logger
     
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     

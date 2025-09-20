@@ -43,6 +43,16 @@ alert-manager/
 └── logs/                     # Директория для логов (создается автоматически)
 \`\`\`
 
+chmod +x alert-manager.sh
+
+# Дать права на выполнение всем скриптам в папке scripts
+find scripts/ -name "*.sh" -exec chmod +x {} \;
+
+# Проверить права
+ls -la alert-manager.sh
+ls -la scripts/
+./scripts/install.sh --fix-permissions
+
 ## Быстрый старт
 
 ### 1. Установка
