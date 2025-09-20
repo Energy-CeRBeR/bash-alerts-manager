@@ -24,7 +24,12 @@ source "$CONFIG_FILE"
 source "$SCRIPT_DIR/utils/logger.sh"
 source "$SCRIPT_DIR/utils/config_parser.sh"
 
-# Initialize logging
+# Initialize logging with validation
+if [[ -z "${LOG_FILE:-}" ]]; then
+    echo "WARNING: LOG_FILE not set in config, using default"
+    LOG_FILE="alerts.log"
+fi
+
 init_logger "$LOG_FILE"
 
 log_info "Alert Manager started - $(date)"

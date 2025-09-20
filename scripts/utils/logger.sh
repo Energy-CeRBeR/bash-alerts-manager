@@ -9,11 +9,22 @@ LOG_FILE_PATH=""
 init_logger() {
     local log_file="$1"
     
+    # Handle empty or undefined log file
+    if [[ -z "$log_file" ]]; then
+        log_file="alerts.log"
+        echo "WARNING: LOG_FILE not specified, using default: $log_file"
+    fi
+    
     # Create absolute path for log file
     if [[ "$log_file" = /* ]]; then
         LOG_FILE_PATH="$log_file"
     else
-        LOG_FILE_PATH="$(dirname "$SCRIPT_DIR")/$log_file"
+        # Use PROJECT_DIR instead of SCRIPT_DIR parent
+        if [[ -n "${PROJECT_DIR:-}" ]]; then
+            LOG_FILE_PATH="$PROJECT_DIR/$log_file"
+        else
+            LOG_FILE_PATH="$(dirname "$(dirname "$SCRIPT_DIR")")/$log_file"
+        fi
     fi
     
     # Create log directory if it doesn't exist
@@ -21,6 +32,14 @@ init_logger() {
     
     # Create log file if it doesn't exist
     touch "$LOG_FILE_PATH"
+    
+    # Verify log file is writable
+    if [[ ! -w "$LOG_FILE_PATH" ]]; then
+        echo "ERROR: Cannot write to log file: $LOG_FILE_PATH"
+        exit 1
+    fi
+    
+    echo "Log file initialized: $LOG_FILE_PATH"
 }
 
 log_message() {
@@ -28,6 +47,12 @@ log_message() {
     local message="$2"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     local formatted_message="[$timestamp] [$level] $message"
+    
+    if [[ -z "$LOG_FILE_PATH" ]]; then
+        echo "ERROR: Logger not initialized. Call init_logger first."
+        echo "$formatted_message"
+        return 1
+    fi
     
     echo "$formatted_message" | tee -a "$LOG_FILE_PATH"
 }
